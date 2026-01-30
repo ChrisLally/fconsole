@@ -66,79 +66,35 @@ $> npm install fconsole
 
 # Usage Example (TypeScript)
 
-## With native [Pixi.js](https://github.com/pixijs/pixi.js)
-```TypeScript
-import {EngineAdapter, PixiAdapter} from "fgraphics/dist/index";
-import {FC} from "fconsole/dist/index";
+## With Modern PixiJS (v8+)
 
-// Native Pixi.js renderer
-let renderer = PIXI.autoDetectRenderer(800, 600);
-document.body.appendChild(renderer.view);
-// Native main container
-let stage = new PIXI.Container();
+To use FConsole with PixiJS v8, you need to provide a shimmed stage that allows FConsole to access the renderer and ticker, as they are no longer globally exposed in the same way.
 
-// At the very beginning we need to instantiate a graphics adapter (in our case the Pixi.js adapter).
-EngineAdapter.instance = new PixiAdapter({renderer: renderer, nativeStage: stage});
-// Initialization of the console (should be initialized after initialization of the adapter)
-FC.startInit(EngineAdapter.instance.createDisplayObjectContainerWrapper(stage));
-// Optional (to make the console visible from the beginning)
-FC.visible = true;
-```
+```typescript
+import { Application } from "pixi.js";
+import { FC } from "@flashist/fconsole";
 
-## With the [Graphics Adapter API](https://github.com/flashist/fgraphics)
-```TypeScript
-import {EngineAdapter, PixiAdapter, TickerEvent} from "fgraphics/dist/index";
-import {FC} from "fconsole/dist/index";
+(async () => {
+    const app = new Application();
+    await app.init({ resizeTo: window });
+    document.body.appendChild(app.canvas);
 
-// Initialization of the grpahics adapter (in our case the Pixi.js adapter)
-EngineAdapter.instance = new PixiAdapter(
-  {
-    rendererSettings: {
-      backgroundColor: 0xAAAAAA
-    },
-    rendererWidth: 800,
-    rendererHeight: 600
-  }
-);
-// Append the renderer canvas to the DOM
-document.body.appendChild(EngineAdapter.instance.canvas);
+    // FConsole v8 Shim: The stage needs direct access to the ticker and renderer
+    const stageShim: any = app.stage;
+    stageShim.ticker = app.ticker;
+    stageShim.renderer = app.renderer;
 
-// Render graphics by ticker events
-EngineAdapter.instance.mainTicker.addEventListener(
-  TickerEvent.TICK,
-  () => {
-    EngineAdapter.instance.renderGraphics();
-  }
-);
+    // Initialize the console
+    FC.startInit(stageShim);
+    FC.visible = true;
 
-// Initialization of the console (should be initialized after initialization of the adapter)
-FC.startInit(EngineAdapter.instance.stage);
-// Optional (to make the console visible from the beginning)
-FC.visible = true;
-```
-
-## [SystemJS](https://github.com/systemjs/systemjs) config (example)
-```TypeScript
-SystemJS.config(
-  {
-    transpiler: "typescript",
-    packages: {
-      "src": {defaultExtension: "ts"},
-      "fcore": {defaultExtension: "js"},
-      "fgraphics": {defaultExtension: "js"},
-      "flibs": {defaultExtension: "js"},
-      "fconsole": {defaultExtension: "js"},
-      "eventemitter3": {defaultExtension: "js"}
-    },
-    map: {
-      "fcore": "node_modules/fcore",
-      "fgraphics": "node_modules/fgraphics",
-      "flibs": "node_modules/flibs",
-      "fconsole": "node_modules/fconsole",
-      "eventemitter3": "node_modules/eventemitter3/index.js"
-    }
-  }
-);
+    // Toggle with Backquote (`)
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "Backquote") {
+            FC.visible = !FC.visible;
+        }
+    });
+})();
 ```
 
 # Notes
